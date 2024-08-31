@@ -12,5 +12,12 @@ models:
       tags:
         - reddit
         - api_integration
+    tasks:
+      extractor:
+        RedditExtractor:
+      transformers:
+        - RedditTransformer:
+      saver:
+        S3Saver:
     alerting_chat_id: -987654321
     alerting_secret_name: alerting_bot_token
