@@ -7,5 +7,5 @@ class MockSaver:
 
     def save(self, resource: TransformerResource) -> SaverResource:
         return SaverResource(
-                path=f'{resource.path}.gzip.parquet'
+                path=f'{resource.path}.parquet'
             )
