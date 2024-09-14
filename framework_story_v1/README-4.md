@@ -104,7 +104,7 @@ class MockExtractor:
             yield ExtractorResource(path=f'mock_s3_file_{idx}.csv')
 ```
 
-Остальные классы, реализуем самостоятельно или заглядываем в [репу]()
+Остальные классы, реализуем самостоятельно или заглядываем в [репу](https://github.com/urevoleg/tlg-post-artefacts/tree/main/framework_story_v1/src/common)
 
 tags:
 - walle
