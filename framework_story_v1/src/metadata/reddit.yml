@@ -15,9 +15,16 @@ models:
     tasks:
       extractor:
         RedditExtractor:
+          src_s3_conection_id: reddit_s3_connection_id
+          src_s3_bucket: raw-public
+          src_s3_prefix_template: reddit/{dm_date}
+          src_s3_partition_fmt: '%Y-%m-%d'
       transformers:
         - RedditTransformer:
       saver:
         S3Saver:
+          dst_s3-connection_id: reddit_s3_connection_id
+          dst_s3_bucket: ods-public
+          dst_s3_prefix_template: reddit/{dm_date}
     alerting_chat_id: -987654321
     alerting_secret_name: alerting_bot_token
