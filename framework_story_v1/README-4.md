@@ -119,6 +119,18 @@ class MockExtractor:
           src_s3_partition_fmt: '%Y-%m-%d'
 ```
 
+Осталось встроить наши классы в даг, используем [TaskFlow API](https://airflow.apache.org/docs/apache-airflow/stable/tutorial/taskflow.html), пример для экстратора:
+
+```python
+
+```
+
+Остальное обдумываем сами или заглядываем в [репу]().
+
+И после загрузки в AirFlow получаем такую красоту в UI:
+
+
+
 tags:
 - walle
 - framework
