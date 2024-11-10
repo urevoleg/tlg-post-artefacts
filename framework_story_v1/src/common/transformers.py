@@ -10,5 +10,5 @@ class MockTransfromer:
     def transform(self, resource: ExtractorResource) -> TransformerResource:
         return TransformerResource(
                 path=resource.path,
-                content_type=io.BytesIO()
+                content=io.BytesIO()
             )
