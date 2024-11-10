@@ -49,10 +49,13 @@ def create_dag(intergation_metadata: dict) -> DAG:
                     intergation_metadata=intergation_metadata
                 )
 
-                return [resource.s3_filename for resource in extractor_obj.get_objects()]
+                return [resource.path for resource in extractor_obj.get_objects()]
+
+            # извлекаем общую структуру тасок
+            tasks_meta = getattr(intergation_metadata, "tasks", {})
 
             # извлекаем extractor
-            extractor_name, extractor_params = list(getattr(intergation_metadata, "extractor").items())[0]
+            extractor_name, extractor_params = list(tasks_meta.get("extractor").items())[0]
 
             if not extractor_params:
                 extractor_params = {}
@@ -65,7 +68,7 @@ def create_dag(intergation_metadata: dict) -> DAG:
                 extractor=extractor)
 
             # 2 блок Трансформации и Сохранение
-            # Управление параллельностью
+            # Управление параллельностью #TODO эти параметры в секции dag
             max_active_tis_per_dag = getattr(intergation_metadata, "max_active_tis_per_dag", 5)
 
             @task(max_active_tis_per_dag=max_active_tis_per_dag,
@@ -100,13 +103,13 @@ def create_dag(intergation_metadata: dict) -> DAG:
                     }
 
             # извлекаем saver
-            saver_name, _ = list(getattr(intergation_metadata, "saver").items())[0]
+            saver_name, _ = list(tasks_meta.get("saver").items())[0]
 
             logging.info(saver_name)
             saver = globals()[saver_name]
 
             # извлекаем transformers
-            for transformer_dict in getattr(intergation_metadata, "transformers", []):
+            for transformer_dict in tasks_meta.get("transformers", []):
                 transformer_name, _ = \
                     [(transformer_name, _) for transformer_name, _ in
                      transformer_dict.items()][-1]

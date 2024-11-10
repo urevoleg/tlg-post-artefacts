@@ -18,5 +18,9 @@ for directory in directories:
 
             pprint(metadata_model)
 
+            #TODO должен быть блок проверок:
+            # 1. Наличие экстратора
+            # 2. Наличие хотя бы одного трансформера
+
             dag_id, dag = create_dag(intergation_metadata=metadata_model)
             globals()[dag_id] = dag
