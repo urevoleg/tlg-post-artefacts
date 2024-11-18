@@ -2,8 +2,8 @@ from .models import ExtractorResource
 
 
 class MockExtractor:
-    def __init__(self, integration_meta: dict):
-        self.integration_meta = integration_meta
+    def __init__(self, intergation_metadata: dict):
+        self.intergation_metadata = intergation_metadata
 
     def get_resources(self):
         for idx in range(5):
