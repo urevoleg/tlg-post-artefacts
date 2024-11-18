@@ -8,6 +8,8 @@ models:
       start_date: '2024-08-01'
 #      end_date: '2024-08-31'
       catchup: False
+#      max_active_runs: 1
+#      max_active_tis_per_dag: 2
       owner: dwh
       tags:
         - mock

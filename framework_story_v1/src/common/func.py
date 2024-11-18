@@ -45,7 +45,7 @@ def create_dag(intergation_metadata: dict) -> DAG:
             start = EmptyOperator(task_id="Start", dag=dag)
 
             # 1 блок формирование объектов (пути к файлам на S3 или урлы для API)
-            @task(queue="celery_queue")
+            @task
             def _extractor(extractor: t.Callable) -> t.List[str]:
                 extractor_obj = extractor(
                     intergation_metadata=intergation_metadata
