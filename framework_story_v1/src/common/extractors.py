@@ -1,4 +1,4 @@
-from models import ExtractorResource
+from .models import ExtractorResource
 
 
 class MockExtractor:

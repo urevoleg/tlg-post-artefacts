@@ -9,9 +9,9 @@ from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 
-from extractors import *
-from savers import *
-from transformers import *
+from .extractors import *
+from .savers import *
+from .transformers import *
 
 
 def create_dag(intergation_metadata: dict) -> DAG:
@@ -52,7 +52,8 @@ def create_dag(intergation_metadata: dict) -> DAG:
                 return [resource.path for resource in extractor_obj.get_objects()]
 
             # извлекаем общую структуру тасок
-            tasks_meta = getattr(intergation_metadata, "tasks", {})
+            tasks_meta = intergation_metadata.get("tasks", {})
+            print(f'tasks_meta: {tasks_meta}')
 
             # извлекаем extractor
             extractor_name, extractor_params = list(tasks_meta.get("extractor").items())[0]
@@ -120,7 +121,7 @@ def create_dag(intergation_metadata: dict) -> DAG:
                     .override(task_id=f"_transformer_and_saver__{transformer_name}") \
                     .partial(saver=saver,
                              transformer=transformer) \
-                    .expand(resource=ext_resources)
+                    .expand(ext_resource=ext_resources)
             
             end = EmptyOperator(task_id="End", dag=dag)
 
