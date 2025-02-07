@@ -25,7 +25,7 @@ extractor всегда 1, но может возвращать нескольк�
 ```yaml
 version: 2
 models:
-  - name: reddit # имя интеграции, оно же dag_id
+  - name: mock # имя интеграции, оно же dag_id
     description: Топ реддитов за последний час # описание интеграции, оно же dag_description
     dag:
 #      dag_id: "" # можно переопределить dag_id != name
@@ -35,22 +35,22 @@ models:
       catchup: False
       owner: dwh
       tags:
-        - reddit
+        - mock
         - api_integration
     tasks:
       extractor:
-        RedditExtractor:
+        MockExtractor:
       transformers:
-        - RedditTransformer:
+        - MockTransformer:
       saver:
-        S3Saver:
+        MockSaver:
     alerting_chat_id: -987654321
     alerting_secret_name: alerting_bot_token
 ```
 
 Тут важно проверить, что ошибок в структуре нет и yaml_reader успешно читает такой конфиг (самостоятельно).
 
-Структуру описали, теперь разбираемся что же это за `RedditExtractor`, `RedditTransformer` и `S3Saver`🤔. А этих товарищей нужно реализовать: то есть 
+Структуру описали, теперь разбираемся что же это за `MockExtractor`, `MockTransformer` и `MockSaver`🤔. А этих товарищей нужно реализовать: то есть 
 это некие Python-классы, которые реализуют некоторый базовый интерфейс. На текущий момент мы знаем, что extractor что-то передает transformer, этот
 в свою очередь передаёт уже данные в saver. Условимся называть то чем обмениваются классы ресурсом (`Resource`). Итого у нас будет 3 ресурса:
 - ExtractorResource
@@ -96,8 +96,8 @@ from models import ExtractorResource
 
 
 class MockExtractor:
-    def __init__(self, integration_meta: dict):
-        self.integration_meta = integration_meta
+    def __init__(self, integration_metadata: dict):
+        self.integration_metadata = integration_metadata
 
     def get_resources(self):
         for idx in range(5):
@@ -113,7 +113,7 @@ ps: можно заматить, экстрактор реализован ка�
 ```yaml
     tasks:
       extractor:
-        RedditExtractor:
+        MockExtractor:
           src_s3_conection_id: reddit_s3_connection_id
           src_s3_bucket: raw-public
           src_s3_prefix_template: reddit/{dm_date}
@@ -123,16 +123,16 @@ ps: можно заматить, экстрактор реализован ка�
 Осталось встроить наши классы в даг, используем [TaskFlow API](https://airflow.apache.org/docs/apache-airflow/stable/tutorial/taskflow.html), пример для экстратора:
 
 ```python
-@task(queue="celery_queue")
+@task
 def _extractor(extractor: t.Callable) -> t.List[str]:
     extractor_obj = extractor(
         intergation_metadata=intergation_metadata
     )
 
-    return [resource.path for resource in extractor_obj.get_objects()]
+    return [resource.__dict__ for resource in extractor_obj.get_resources()]
 
 # извлекаем общую структуру тасок
-tasks_meta = getattr(intergation_metadata, "tasks", {})
+tasks_meta = intergation_metadata.get("tasks", {})
 
 # извлекаем extractor
 extractor_name, extractor_params = list(tasks_meta.get("extractor").items())[0]
@@ -153,6 +153,7 @@ ext_resources = _extractor.override(task_id=f"_extractor__{extractor_name}")(
  - все экстраторы импортируются `from extractors import *`
  - из словаря `globals()` получаем объект нужного экстрактора по имени из ямла
  - если параметров экстратора нет, то подставляют пустой словарь
+ - `resource.__dict__` - нужно, тк XComm не знает как сериализовать нашу модель ресурса, поэтому воспользуемся атрибутом `__dict__`. Соответственно внутри таски transform_and_save обратно создадим ресурс
 
 Логика для трансформера и saver сохраняется, добавляется только обработка ситуации, 
 когда трансформер сохраняет сам объекты и отдает только пути (пустой `TransformerResource.content`). Как показала практика: такое нередко 
@@ -162,7 +163,7 @@ ext_resources = _extractor.override(task_id=f"_extractor__{extractor_name}")(
 
 И после загрузки в AirFlow получаем такую красоту в UI:
 
-
+![walle_4_graph.png](img/walle_4_graph.png)
 
 tags:
 - walle

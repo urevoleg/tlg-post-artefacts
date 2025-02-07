@@ -9,14 +9,14 @@ from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 
-from extractors import *
-from savers import *
-from transformers import *
+from .extractors import *
+from .savers import *
+from .transformers import *
 
 
 def create_dag(intergation_metadata: dict) -> DAG:
 
-    dag_id = f'dwh_walle_{intergation_metadata["name"]}'
+    dag_id = intergation_metadata.get("dag").get("dag_id", f'dwh_walle_{intergation_metadata["name"]}')
     description = intergation_metadata["description"]
     schedule_interval = intergation_metadata["dag"]["schedule_interval"]
     owner = intergation_metadata["dag"]["owner"]
@@ -24,6 +24,8 @@ def create_dag(intergation_metadata: dict) -> DAG:
     end_date = intergation_metadata["dag"].get("end_date", None)
     catchup = intergation_metadata["dag"]["catchup"]
     tags = intergation_metadata["dag"]["tags"]
+    max_active_runs = intergation_metadata["dag"].get("max_active_runs", 1)
+    max_active_tis_per_dag = intergation_metadata["dag"].get("max_active_tis_per_dag", 3)
 
     default_args = {"owner": owner,
                     "start_date": start_date,
@@ -43,16 +45,17 @@ def create_dag(intergation_metadata: dict) -> DAG:
             start = EmptyOperator(task_id="Start", dag=dag)
 
             # 1 блок формирование объектов (пути к файлам на S3 или урлы для API)
-            @task(queue="celery_queue")
+            @task
             def _extractor(extractor: t.Callable) -> t.List[str]:
                 extractor_obj = extractor(
                     intergation_metadata=intergation_metadata
                 )
 
-                return [resource.path for resource in extractor_obj.get_objects()]
+                return [resource.__dict__ for resource in extractor_obj.get_resources()]
 
             # извлекаем общую структуру тасок
-            tasks_meta = getattr(intergation_metadata, "tasks", {})
+            tasks_meta = intergation_metadata.get("tasks", {})
+            print(f'tasks_meta: {tasks_meta}')
 
             # извлекаем extractor
             extractor_name, extractor_params = list(tasks_meta.get("extractor").items())[0]
@@ -68,11 +71,8 @@ def create_dag(intergation_metadata: dict) -> DAG:
                 extractor=extractor)
 
             # 2 блок Трансформации и Сохранение
-            # Управление параллельностью #TODO эти параметры в секции dag
-            max_active_tis_per_dag = getattr(intergation_metadata, "max_active_tis_per_dag", 5)
-
             @task(max_active_tis_per_dag=max_active_tis_per_dag,
-                  queue="celery_queue",
+                  # queue="celery_queue",
                   # executor_config=PodSizeEnum.
                   )
             def _transform_and_load(ext_resource: str,
@@ -86,7 +86,7 @@ def create_dag(intergation_metadata: dict) -> DAG:
 
                 # transform
                 transformer_resource = transformer_obj.transform(
-                    resource=ext_resource
+                    resource=ExtractorResource(**ext_resource)
                 )
 
                 # save
@@ -120,7 +120,7 @@ def create_dag(intergation_metadata: dict) -> DAG:
                     .override(task_id=f"_transformer_and_saver__{transformer_name}") \
                     .partial(saver=saver,
                              transformer=transformer) \
-                    .expand(resource=ext_resources)
+                    .expand(ext_resource=ext_resources)
             
             end = EmptyOperator(task_id="End", dag=dag)
 

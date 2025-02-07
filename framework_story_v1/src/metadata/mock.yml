@@ -1,0 +1,32 @@
+version: 2
+models:
+  - name: mock # имя интеграции, оно же dag_id
+    description: Mock description # описание интеграции, оно же dag_description
+    dag:
+#      dag_id: "" # можно переопределить dag_id != name
+      schedule_interval: 0 * * * *
+      start_date: '2024-08-01'
+#      end_date: '2024-08-31'
+      catchup: False
+#      max_active_runs: 1
+#      max_active_tis_per_dag: 2
+      owner: dwh
+      tags:
+        - mock
+        - api_integration
+    tasks:
+      extractor:
+        MockExtractor:
+          src_s3_conection_id: reddit_s3_connection_id
+          src_s3_bucket: raw-public
+          src_s3_prefix_template: reddit/{dm_date}
+          src_s3_partition_fmt: '%Y-%m-%d'
+      transformers:
+        - MockTransformer:
+      saver:
+        MockSaver:
+          dst_s3-connection_id: reddit_s3_connection_id
+          dst_s3_bucket: ods-public
+          dst_s3_prefix_template: reddit/{dm_date}
+    alerting_chat_id: -987654321
+    alerting_secret_name: alerting_bot_token
